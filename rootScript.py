@@ -8,8 +8,8 @@
 #												
 #    Copyright (c) 2022 natthawk				
 #												
-#	 This code is licensed under the GNU		
-#	 General Public License, Version 3.			
+#    This code is licensed under the GNU		
+#    General Public License, Version 3.			
 #-----------------------------------------------
 
 from cryptography.hazmat.primitives.ciphers import algorithms, modes, Cipher
