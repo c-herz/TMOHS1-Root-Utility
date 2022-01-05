@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#-----------------------------------------------#
-#    Utility definitions for                    #
-#    TMOHS1 exploit script		                #
-#												#
-#    Copyright (c) 2022 natthawk				#
-#												#				
-#	 This code is licensed under the GNU		#
-#	 General Public License, Version 3.			#	
-#-----------------------------------------------#
+#-----------------------------------------------
+#    Utility definitions for                    
+#    TMOHS1 exploit script		                
+#												
+#    Copyright (c) 2022 natthawk				
+#																
+#	 This code is licensed under the GNU		
+#	 General Public License, Version 3.				
+#-----------------------------------------------
 
 import time
 import telnetlib
