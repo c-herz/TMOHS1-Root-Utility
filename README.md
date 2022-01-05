@@ -18,7 +18,7 @@ An interactive python script that enables root access on the T-Mobile (Wingtech)
 
 - SIM unlock :(
 - SSH server installation
-- Other USB modes (though if you edit the script you can easily implement this)
+- Other USB modes (though if you edit `utils.py` you can easily implement this)
 
 ## Setup
 
