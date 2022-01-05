@@ -69,8 +69,8 @@ class TelnetConnection(telnetlib.Telnet):
             try:
                 self.open(self.host, self.wait)
             except:
-                print(
-                    'Telnet client died and we could not reconnect. Reboot and try again.')
+                print('Telnet connection died and we could not revive it. Reboot the hotspot and try again.')
+                quit()
 
     def send(self, cmd):
         self.write(cmd.encode() + b'\n')
@@ -92,11 +92,13 @@ def changeRootPwd(conn):
         global chPwdFlag
         chPwdFlag = False
         print('Root password successfully updated.')
+        chooseAction(conn)
 
 
 def usrShell(conn):
     conn.resetIfDead()
     conn.mt_interact()  # spawns an interactive telnet client, though I can't figure out how to get it to not echo everything
+    chooseAction(conn)
 
 
 def ftpEnable(conn):
@@ -106,9 +108,10 @@ def ftpEnable(conn):
     # make sure ftp server is listening on port 21
     if b'0.0.0.0:21' not in conn.read_very_eager():
         print('Error starting FTP server. Try again.')
-        chooseAction()
+        chooseAction(conn)
     else:
         print('Started FTP server on port 21.')
+        chooseAction(conn)
 
 
 def adbTemp(conn):
@@ -116,12 +119,13 @@ def adbTemp(conn):
     # switch usb mode, effective immediately
     conn.send('/sbin/usb/compositions/9025')
     print('Switched USB mode to 9025 (ADB). . .')
+    chooseAction(conn)
 
 
 def adbPersist(conn):
     adbTemp(conn)
     ftpEnable(conn)
-    srv = FTP('192.168.0.1')  # start a FTP connection to the server we started
+    srv = FTP('192.168.0.1')  # start a connection to the FTP server we initialized with ftpEnable(conn)
     srv.login()
     srv.cwd('cache')
     with open('patchUSB.sh', 'rb') as fp:
@@ -148,7 +152,7 @@ def reboot(conn):
     conn.resetIfDead()
     print('Rebooting. Goodbye!')
     conn.send('reboot')
-    quit(conn)
+    quit()
 
 
 def moodLighting(conn):
