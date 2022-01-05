@@ -4,7 +4,7 @@
 
 ## Description
 
-An interactive python script enables root access on the T-Mobile (Wingtech) TMOHS1, as well as providing several useful utilites to change the configuration of the device.
+An interactive python script that enables root access on the T-Mobile (Wingtech) TMOHS1, as well as providing several useful utilites to change the configuration of the device.
 
 ## Features
 
