@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#-----------------------------------------------#
-#    Exploit script for TMOHS1 hotspot			#
-#												#
-#    Gives us a root shell over telnet			#
-#    and offers several utility functions		# 
-#												#
-#    Copyright (c) 2022 natthawk				#
-#												#				
-#	 This code is licensed under the GNU		#
-#	 General Public License, Version 3.			#	
-#-----------------------------------------------#
+#-----------------------------------------------
+#    Exploit script for TMOHS1 hotspot			
+#												
+#    Gives us a root shell over telnet			
+#    and offers several utility functions		
+#												
+#    Copyright (c) 2022 natthawk				
+#												
+#	 This code is licensed under the GNU		
+#	 General Public License, Version 3.			
+#-----------------------------------------------
 
 from cryptography.hazmat.primitives.ciphers import algorithms, modes, Cipher
 from cryptography.hazmat.primitives import padding
