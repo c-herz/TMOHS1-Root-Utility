@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-#########################################
-#    Utility definitions for TMOHS1 exploit
-#
-#    Created by natthawk
-#    Copyright 2022
-#########################################
+#-----------------------------------------------#
+#    Utility definitions for                    #
+#    TMOHS1 exploit script		                #
+#												#
+#    Copyright (c) 2022 natthawk				#
+#												#				
+#	 This code is licensed under the GNU		#
+#	 General Public License, Version 3.			#	
+#-----------------------------------------------#
 
 import time
 import telnetlib
@@ -16,7 +18,7 @@ from ftplib import FTP
 chPwdFlag = True
 
 
-# create a TelnetConnection class to add some case-specific methods to the telnetlib.Telnet class
+# TenetConnection class adds some case-specific methods to the telnetlib.Telnet class
 
 class TelnetConnection(telnetlib.Telnet):
     def __init__(self, host, wait):
@@ -44,7 +46,7 @@ class TelnetConnection(telnetlib.Telnet):
         else:
             rootPwd = input('Enter your custom root password: ')
             self.write((f'{rootPwd}\n').encode())
-        if b'#' not in self.read_very_eager():  # Make sure we actually have a shell
+        if b'#' not in self.read_very_eager():  # Make sure we actually have a root shell
             choice = input('Failed to login as root. Try again? (Y/n): ')
             if choice == 'n':
                 quit()
@@ -101,7 +103,7 @@ def ftpEnable(conn):
     conn.resetIfDead()
     conn.send('start-stop-daemon -S -b -a tcpsvd -- -vE 0.0.0.0 21 ftpd -w /')
     conn.send('netstat -tunlp')
-    # make sure server is listening on port 21
+    # make sure ftp server is listening on port 21
     if b'0.0.0.0:21' not in conn.read_very_eager():
         print('Error starting FTP server. Try again.')
         chooseAction()
@@ -117,17 +119,17 @@ def adbTemp(conn):
 
 
 def adbPersist(conn):
-    adbTemp()
-    ftpEnable()
+    adbTemp(conn)
+    ftpEnable(conn)
     srv = FTP('192.168.0.1')  # start a FTP connection to the server we started
     srv.login()
     srv.cwd('cache')
     with open('patchUSB.sh', 'rb') as fp:
-        # upload the patch script to the cache directory
+        # upload the patch script from our local machine to /cache on the server
         srv.storbinary('STOR patchUSB.sh', fp)
     time.sleep(1)
     srv.close()
-    # make it executable and run it
+    # now tell the server to make it executable and run it
     conn.send('chmod +x /cache/patchUSB.sh')
     print('Patching USB init script to persistently enable ADB. . .')
     conn.send('/cache/patchUSB.sh')
@@ -135,10 +137,10 @@ def adbPersist(conn):
     conn.send('rm /cache/patchUSB.sh')
 
     # clear the queue so it doesn't get cluttered with our commands getting echoed back, 
-    # as it seems telnetlib has a hobby of vomiting them into the read queue
+    # as it seems telnetlib has a hobby of vomiting them into the read queue...
     conn.read_very_eager()
     print('Cleaning up, killing FTP server. . .')
-    # we don't need the ftp server anymore, and we don't want to leave it open without the user knowing
+    # we don't need the ftp server anymore, and we don't want to leave it open - user hasn't explicitly opened it
     conn.send('killall tcpsvd')
 
 
@@ -146,17 +148,20 @@ def reboot(conn):
     conn.resetIfDead()
     print('Rebooting. Goodbye!')
     conn.send('reboot')
+    quit(conn)
 
 
 def moodLighting(conn):
     conn.resetIfDead()
-    conn.send('/sbin/ledoff.sh; sleep 2; echo 1 > /sys/class/leds/led\:signal_blue/blink; echo 1 > /sys/class/leds/led\:signal_green/blink')
+    # favorite part of this whole project tbh
+    conn.send('/sbin/led.sh; sleep 1; echo 1 > /sys/class/leds/led\:signal_blue/blink; echo 1 > /sys/class/leds/led\:signal_green/blink')
 
 
 def disableOmadm(conn):
     conn.resetIfDead()
     # copy omadm init script to backups directory, then delete it from /etc/init.d
     conn.send('if [ ! -d /etc/backups/init.d ];then mkdir -p /etc/backups/init.d; fi; cp /etc/init.d/start_omadm_le /etc/backups/init.d/; rm /etc/init.d/start_omadm_le;')
+    print('Succesfully removed OMA-DM bootstrap, if one was present.')
 
 
 def chooseAction(conn):
@@ -177,17 +182,17 @@ Would you like to set a custom root password? (Y/n):
             chooseAction(conn)
     else:
         choice = input(
-            '''Select an option:
-            1) Change root password
-            2) Enough with this script BS, give me a shell!
-            3) Enable ADB
-            4) Enable ADB - Persistent through reboot (somewhat experimental)
-            5) Enable FTP server for / on port 21 - DO NOT LEAVE OPEN
-            6) Remove OMA-DM bootstrap (essentially disables firmware updates, recommended)
-            7) Enable mood lighting (look at the signal LED)
-            8) Reboot
-            9) Quit\n
-            '''
+        '''###Options###
+        1) Change root password
+        2) Enough with this script BS, give me a shell!
+        3) Enable ADB
+        4) Enable ADB - Persistent through reboot (somewhat experimental)
+        5) Enable FTP server for / on port 21 - DO NOT LEAVE OPEN
+        6) Remove OMA-DM bootstrap (essentially disables firmware updates, recommended)
+        7) Enable mood lighting (look at the signal LED)
+        8) Reboot
+        9) Quit\n
+        Enter option: '''
         )
         match choice:
             case '1':
