@@ -25,7 +25,7 @@ An interactive python script that enables root access on the T-Mobile (Wingtech)
 Ensure you have Python >= 3.6 and pip installed then run:
 
 ```bash
-pip -r requirements.txt
+pip install -r requirements.txt
 ```
 
 Or install the required libraries manually.
