@@ -198,26 +198,18 @@ Would you like to set a custom root password? (Y/n):
         9) Quit\n
         Enter option: '''
         )
-        match choice:
-            case '1':
-                changeRootPwd(conn)
-            case '2':
-                usrShell(conn)
-            case '3':
-                adbTemp(conn)
-            case '4':
-                adbPersist(conn)
-            case '5':
-                ftpEnable(conn)
-            case '6':
-                disableOmadm(conn)
-            case '7':
-                moodLighting(conn)
-            case '8':
-                reboot(conn)
-            case '9':
-                quit(conn)
-            case _:
-                print('Please enter a valid choice (1-9)')
-                chooseAction(conn)
-    chooseAction(conn)
+        while int(choice) not in range(1,9):
+            choice = input('Please select a valid choice 1-9: ')
+        options= {
+            '1': changeRootPwd,
+            '2': usrShell,
+            '3': adbTemp,
+            '4': adbPersist,
+            '5': ftpEnable,
+            '6': disableOmadm,
+            '7': moodLighting,
+            '8': reboot,
+            '9': quit
+        }
+        options[choice](conn)
+        chooseAction(conn)
