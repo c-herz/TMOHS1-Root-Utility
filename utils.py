@@ -14,11 +14,20 @@ import time
 import telnetlib
 from getpass import getpass
 from ftplib import FTP
+import argparse;
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-v','--verbose',
+    action='store_true',
+    help='Enable verbose (debug) output.')
+
+args = parser.parse_args()
+
 
 chPwdFlag = True
 
 
-# TenetConnection class adds some case-specific methods to the telnetlib.Telnet class
+# TelnetConnection class adds some case-specific methods to the telnetlib.Telnet class
 
 class TelnetConnection(telnetlib.Telnet):
     def __init__(self, host, wait):
@@ -30,9 +39,12 @@ class TelnetConnection(telnetlib.Telnet):
             print('Trying to connect via telnet. . .')
         except TimeoutError:
             print(
-                'Telnet connection attempt timed out. \n. Please reboot the device and try again.')
+                '\nTelnet connection attempt timed out. \n. Please reboot the device and try again.')
             quit()
-        self.read_until(b'login:')
+        loginConf = self.read_until(b'login:')
+        if args.verbose:
+            print('Received: \n' + loginConf.decode())
+
         self.write(b'root')
         self.login()
 
@@ -42,6 +54,7 @@ class TelnetConnection(telnetlib.Telnet):
                 'Telnet connection initialized.\nLogging in as root with empty password, please wait. . .')
             self.write(b'\n')
             # wait for a bit because if we don't, things break in inexplicable ways ¯\_(ツ)_/¯
+            if args.verbose: print('Waiting for login to be processed. . .')
             time.sleep(4)
         else:
             rootPwd = input('Enter your custom root password: ')
@@ -72,19 +85,22 @@ class TelnetConnection(telnetlib.Telnet):
                 print('Telnet connection died and we could not revive it. Reboot the hotspot and try again.')
                 quit()
 
-    def send(self, cmd):
+    def send(self, cmd, quiet=False):
         self.write(cmd.encode() + b'\n')
+        # we have this so that we don't echo the root password to the terminal, even in verbose mode.
+        if not quiet: 
+            if args.verbose: print('Sent command via telnet: ' + cmd + '\n')
         time.sleep(1)
 
 
 def changeRootPwd(conn):
     conn.resetIfDead()
+    print('\nChanging root password. \nIMPORTANT NOTE: the password will be sent insecurely over telnet,\n so you should manually change it later over ADB-USB if you are concerned about security.\n')
     conn.send('passwd root')
-
     conn.read_until(b'password:').decode()
-    conn.send(getpass('Enter new password:'))
+    conn.send(getpass('Enter new password:'),quiet=True)
     conn.read_until(b':')
-    conn.send(getpass('Confirm new password:'))
+    conn.send(getpass('Confirm new password:',quiet=True))
     if b'changed by' not in conn.read_very_eager(): # make sure the password was actually changed
         print('Error setting new password. Try again, making sure passwords match.')
         changeRootPwd(conn)
@@ -101,41 +117,53 @@ def usrShell(conn):
     chooseAction(conn)
 
 
-def ftpEnable(conn):
+def ftpEnable(conn, keepAlive=False):
     conn.resetIfDead()
     conn.send('start-stop-daemon -S -b -a tcpsvd -- -vE 0.0.0.0 21 ftpd -w /')
+    conn.read_very_eager() # clear the read queue
     conn.send('netstat -tunlp')
     # make sure ftp server is listening on port 21
-    if b'0.0.0.0:21' not in conn.read_very_eager():
+    recv = conn.read_very_eager()
+    if args.verbose: print('Received: \n' + recv.decode())
+    if b'0.0.0.0:21' not in recv:
         print('Error starting FTP server. Try again.')
         chooseAction(conn)
     else:
         print('Started FTP server on port 21.')
-        chooseAction(conn)
+        if not keepAlive:
+            chooseAction(conn)
 
 
-def adbTemp(conn):
+def adbTemp(conn,keepAlive=False):
     conn.resetIfDead()
     # switch usb mode, effective immediately
     conn.send('/sbin/usb/compositions/9025')
     print('Switched USB mode to 9025 (ADB). . .')
-    chooseAction(conn)
+    if not keepAlive:
+        chooseAction(conn)
 
 
 def adbPersist(conn):
-    adbTemp(conn)
-    ftpEnable(conn)
+    adbTemp(conn,keepAlive=True)
+    ftpEnable(conn,keepAlive=True)
     srv = FTP('192.168.0.1')  # start a connection to the FTP server we initialized with ftpEnable(conn)
     srv.login()
     srv.cwd('cache')
+    if args.verbose: print('Entering /cache. . .')
     with open('patchUSB.sh', 'rb') as fp:
         # upload the patch script from our local machine to /cache on the server
         srv.storbinary('STOR patchUSB.sh', fp)
+        if args.verbose:
+            print('Sent script via FTP, file should now be in /cache on the server. . .')
     time.sleep(1)
     srv.close()
     # now tell the server to make it executable and run it
+    if args.verbose: print('chmod +x-ing the uploaded script. . .')
     conn.send('chmod +x /cache/patchUSB.sh')
-    print('Patching USB init script to persistently enable ADB. . .')
+    if args.verbose:
+        print('Telling server to run the script - patches /etc/init.d/usb to force mode 9025 on boot')
+    else:
+        print('Patching USB init script to persistently enable ADB. . .')
     conn.send('/cache/patchUSB.sh')
     time.sleep(2)
     conn.send('rm /cache/patchUSB.sh')
@@ -164,7 +192,8 @@ def moodLighting(conn):
 def disableOmadm(conn):
     conn.resetIfDead()
     # copy omadm init script to backups directory, then delete it from /etc/init.d
-    conn.send('if [ ! -d /etc/backups/init.d ];then mkdir -p /etc/backups/init.d; fi; cp /etc/init.d/start_omadm_le /etc/backups/init.d/; rm /etc/init.d/start_omadm_le;')
+    cmd = 'if [ ! -d /etc/backups/init.d ];then mkdir -p /etc/backups/init.d; fi; cp /etc/init.d/start_omadm_le /etc/backups/init.d/; rm /etc/init.d/start_omadm_le;'
+    conn.send(cmd)
     print('Succesfully removed OMA-DM bootstrap, if one was present.')
 
 
