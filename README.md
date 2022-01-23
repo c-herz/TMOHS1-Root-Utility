@@ -37,6 +37,10 @@ Connect to your hotspot's network via USB tethering (recommended) or WiFi, then 
 ```sh
 python ./rootScript.py
 ```
+Or for verbose/debug output:
+```sh
+python ./rootScript.py -v
+```
 
 ### **Notes**
 
