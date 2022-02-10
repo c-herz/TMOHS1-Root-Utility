@@ -54,7 +54,7 @@ payload = {
 # module percent-encodes the '=' and '+' signs in the base64 'pwd' string,
 # which confuses qcmap_auth
 
-urlencodedPayload = urllib.parse.urlencode(payload, safe='=+')
+urlencodedPayload = urllib.parse.urlencode(payload, safe='=+/')
 
 
 print('Sending the authentication request. . .')

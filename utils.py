@@ -98,9 +98,9 @@ def changeRootPwd(conn):
     print('\nChanging root password. \nIMPORTANT NOTE: the password will be sent insecurely over telnet,\n so you should manually change it later over ADB-USB if you are concerned about security.\n')
     conn.send('passwd root')
     conn.read_until(b'password:').decode()
-    conn.send(getpass('Enter new password:'),quiet=True)
+    conn.send(getpass('Enter new password:'), quiet=True)
     conn.read_until(b':')
-    conn.send(getpass('Confirm new password:',quiet=True))
+    conn.send((getpass('Confirm new password:')), True)
     if b'changed by' not in conn.read_very_eager(): # make sure the password was actually changed
         print('Error setting new password. Try again, making sure passwords match.')
         changeRootPwd(conn)
@@ -154,7 +154,11 @@ def adbPersist(conn):
         # upload the patch script from our local machine to /cache on the server
         srv.storbinary('STOR patchUSB.sh', fp)
         if args.verbose:
-            print('Sent script via FTP, file should now be in /cache on the server. . .')
+            print('Uploaded script via FTP, file should now be in /cache on the server. . .')
+    with open('usb.patch', 'rb') as fp:
+        srv.storbinary('STOR usb.patch', fp)
+        if args.verbose:
+            print('Uploaded the patch file. . .')
     time.sleep(1)
     srv.close()
     # now tell the server to make it executable and run it
@@ -166,7 +170,8 @@ def adbPersist(conn):
         print('Patching USB init script to persistently enable ADB. . .')
     conn.send('/cache/patchUSB.sh')
     time.sleep(2)
-    conn.send('rm /cache/patchUSB.sh')
+    conn.send('chmod +x /etc/init.d/usb') # make sure the patched init script is still executable (otherwise USB breaks altogether)
+    conn.send('rm /cache/patchUSB.sh /cache/usb.patch')
 
     # clear the queue so it doesn't get cluttered with our commands getting echoed back, 
     # as it seems telnetlib has a hobby of vomiting them into the read queue...
@@ -186,7 +191,8 @@ def reboot(conn):
 def moodLighting(conn):
     conn.resetIfDead()
     # favorite part of this whole project tbh
-    conn.send('/sbin/led.sh; sleep 1; echo 1 > /sys/class/leds/led\:signal_blue/blink; echo 1 > /sys/class/leds/led\:signal_green/blink')
+    conn.send('/usr/bin/led.sh; sleep 4; echo 1 > /sys/class/leds/led\:bat_blue/blink; echo 1 > /sys/class/leds/led\:signal_green/blink')
+    conn.read_very_eager() # clear the read queue so it doesn't clutter up any future shell sessions
 
 
 def disableOmadm(conn):
@@ -194,6 +200,9 @@ def disableOmadm(conn):
     # copy omadm init script to backups directory, then delete it from /etc/init.d
     cmd = 'if [ ! -d /etc/backups/init.d ];then mkdir -p /etc/backups/init.d; fi; cp /etc/init.d/start_omadm_le /etc/backups/init.d/; rm /etc/init.d/start_omadm_le;'
     conn.send(cmd)
+    if args.verbose:
+        print(f'Received: {conn.read_very_eager().decode()}')
+    conn.read_very_eager() # clear the read queue either way
     print('Succesfully removed OMA-DM bootstrap, if one was present.')
 
 
@@ -215,19 +224,19 @@ Would you like to set a custom root password? (Y/n):
             chooseAction(conn)
     else:
         choice = input(
-        '''###Options###
+        '''### Options ###
         1) Change root password
         2) Enough with this script BS, give me a shell!
         3) Enable ADB
         4) Enable ADB - Persistent through reboot (somewhat experimental)
         5) Enable FTP server for / on port 21 - DO NOT LEAVE OPEN
         6) Remove OMA-DM bootstrap (essentially disables firmware updates, recommended)
-        7) Enable mood lighting (look at the signal LED)
+        7) Enable mood lighting (look at the battery LED)
         8) Reboot
         9) Quit\n
         Enter option: '''
         )
-        while int(choice) not in range(1,9):
+        while int(choice) not in range(1,10):
             choice = input('Please select a valid choice 1-9: ')
         options= {
             '1': changeRootPwd,
