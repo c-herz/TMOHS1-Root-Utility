@@ -13,6 +13,7 @@ An interactive python script that enables root access on the T-Mobile (Wingtech)
 - Disable OMA-DM update bootstrap
 - On-device root FTP server to browse the filesystem
 - Mood lighting
+- Mask data that would normally be counted against your hotspot quota as "on-client-device" data
 
 ## What it doesn't (yet?) feature
 
