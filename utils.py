@@ -192,7 +192,7 @@ def maskHotspot(conn):
     # send command to create /etc/init.d/ttl.ssh, add commands, give it correct permissions, and have it start automatically on boot
     conn.send('echo "iptables -t mangle -I POSTROUTING -o rmnet_data0 -j TTL --ttl-set 64" > /etc/init.d/ttl.sh; echo "ip6tables -t mangle -I POSTROUTING -o rmnet_data0 -j HL --hl-set 64" >> /etc/init.d/ttl.sh; chmod 755 /etc/init.d/ttl.sh; ln -s /etc/init.d/ttl.sh /etc/rc5.d/S98ttl')
     conn.read_very_eager()
-    print('Added TTL rules to mask hotspot data as normal "on-device" data. Will take affect on reboot.')
+    print('Added TTL rules to mask hotspot data as normal "on-device" data. Will take effect on reboot.')
 
 def moodLighting(conn):
     conn.resetIfDead()
@@ -238,13 +238,13 @@ Would you like to set a custom root password? (Y/n):
         5) Enable FTP server for / on port 21 - DO NOT LEAVE OPEN
         6) Remove OMA-DM bootstrap (essentially disables firmware updates, recommended)
         7) Enable mood lighting (look at the battery LED)
-        8) Mask hotspot data as "on-device" data
+        8) Mask hotspot data as "on-client-device" data
         9) Reboot
         10) Quit\n
         Enter option: '''
         )
-        while int(choice) not in range(1,10):
-            choice = input('Please select a valid choice 1-9: ')
+        while int(choice) not in range(1,11):
+            choice = input('Please select a valid choice 1-10: ')
         options= {
             '1': changeRootPwd,
             '2': usrShell,
