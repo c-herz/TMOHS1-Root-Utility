@@ -4,7 +4,7 @@
 #    Utility definitions for                    
 #    TMOHS1 exploit script		                
 #												
-#    Copyright (c) 2022 natthawk				
+#    Copyright (c) 2022 c-herz				
 #																
 #    This code is licensed under the GNU		
 #    General Public License, Version 3.				
