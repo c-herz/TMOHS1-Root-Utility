@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#-----------------------------------------------
+# -----------------------------------------------
 #    Utility definitions for                    
 #    TMOHS1 exploit script		                
 #												
@@ -8,23 +8,20 @@
 #																
 #    This code is licensed under the GNU		
 #    General Public License, Version 3.				
-#-----------------------------------------------
+# -----------------------------------------------
 
 import time
 import telnetlib
 from getpass import getpass
 from ftplib import FTP
-import argparse;
+import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-v','--verbose',
-    action='store_true',
-    help='Enable verbose (debug) output.')
+parser.add_argument('-v', '--verbose',
+                    action='store_true',
+                    help='Enable verbose (debug) output.')
 
 args = parser.parse_args()
-
-
-chPwdFlag = True
 
 
 # TelnetConnection class adds some case-specific methods to the telnetlib.Telnet class
@@ -58,7 +55,7 @@ class TelnetConnection(telnetlib.Telnet):
             time.sleep(4)
         else:
             rootPwd = input('Enter your custom root password: ')
-            self.write((f'{rootPwd}\n').encode())
+            self.write(f'{rootPwd}\n'.encode())
         if b'#' not in self.read_very_eager():  # Make sure we actually have a root shell
             choice = input('Failed to login as root. Try again? (Y/n): ')
             if choice == 'n':
@@ -88,25 +85,24 @@ class TelnetConnection(telnetlib.Telnet):
     def send(self, cmd, quiet=False):
         self.write(cmd.encode() + b'\n')
         # we have this so that we don't echo the root password to the terminal, even in verbose mode.
-        if not quiet: 
+        if not quiet:
             if args.verbose: print('Sent command via telnet: ' + cmd + '\n')
         time.sleep(1)
 
 
 def changeRootPwd(conn):
     conn.resetIfDead()
-    print('\nChanging root password. \nIMPORTANT NOTE: the password will be sent insecurely over telnet,\n so you should manually change it later over ADB-USB if you are concerned about security.\n')
+    print(
+        '\nChanging root password. \nIMPORTANT NOTE: the password will be sent insecurely over telnet,\n so you should manually change it later over ADB-USB if you are concerned about security.\n')
     conn.send('passwd root')
     conn.read_until(b'password:').decode()
     conn.send(getpass('Enter new password:'), quiet=True)
     conn.read_until(b':')
     conn.send((getpass('Confirm new password:')), True)
-    if b'changed by' not in conn.read_very_eager(): # make sure the password was actually changed
+    if b'changed by' not in conn.read_very_eager():  # make sure the password was actually changed
         print('Error setting new password. Try again, making sure passwords match.')
         changeRootPwd(conn)
     else:
-        global chPwdFlag
-        chPwdFlag = False
         print('Root password successfully updated.')
         chooseAction(conn)
 
@@ -120,7 +116,7 @@ def usrShell(conn):
 def ftpEnable(conn, keepAlive=False):
     conn.resetIfDead()
     conn.send('start-stop-daemon -S -b -a tcpsvd -- -vE 0.0.0.0 21 ftpd -w /')
-    conn.read_very_eager() # clear the read queue
+    conn.read_very_eager()  # clear the read queue
     conn.send('netstat -tunlp')
     # make sure ftp server is listening on port 21
     recv = conn.read_very_eager()
@@ -134,7 +130,7 @@ def ftpEnable(conn, keepAlive=False):
             chooseAction(conn)
 
 
-def adbTemp(conn,keepAlive=False):
+def adbTemp(conn, keepAlive=False):
     conn.resetIfDead()
     # switch usb mode, effective immediately
     conn.send('/sbin/usb/compositions/9025')
@@ -144,8 +140,8 @@ def adbTemp(conn,keepAlive=False):
 
 
 def adbPersist(conn):
-    adbTemp(conn,keepAlive=True)
-    ftpEnable(conn,keepAlive=True)
+    adbTemp(conn, keepAlive=True)
+    ftpEnable(conn, keepAlive=True)
     srv = FTP('192.168.0.1')  # start a connection to the FTP server we initialized with ftpEnable(conn)
     srv.login()
     srv.cwd('cache')
@@ -170,7 +166,8 @@ def adbPersist(conn):
         print('Patching USB init script to persistently enable ADB. . .')
     conn.send('/cache/patchUSB.sh')
     time.sleep(2)
-    conn.send('chmod +x /etc/init.d/usb') # make sure the patched init script is still executable (otherwise USB breaks altogether)
+    conn.send(
+        'chmod +x /etc/init.d/usb')  # make sure the patched init script is still executable (otherwise USB breaks altogether)
     conn.send('rm /cache/patchUSB.sh /cache/usb.patch')
 
     # clear the queue so it doesn't get cluttered with our commands getting echoed back, 
@@ -187,18 +184,22 @@ def reboot(conn):
     conn.send('reboot')
     quit()
 
+
 def maskHotspot(conn):
     conn.resetIfDead()
     # send command to create /etc/init.d/ttl.ssh, add commands, give it correct permissions, and have it start automatically on boot
-    conn.send('echo "iptables -t mangle -I POSTROUTING -o rmnet_data0 -j TTL --ttl-set 64" > /etc/init.d/ttl.sh; echo "ip6tables -t mangle -I POSTROUTING -o rmnet_data0 -j HL --hl-set 64" >> /etc/init.d/ttl.sh; chmod 755 /etc/init.d/ttl.sh; ln -s /etc/init.d/ttl.sh /etc/rc5.d/S98ttl')
+    conn.send(
+        'echo "iptables -t mangle -I POSTROUTING -o rmnet_data0 -j TTL --ttl-set 64" > /etc/init.d/ttl.sh; echo "ip6tables -t mangle -I POSTROUTING -o rmnet_data0 -j HL --hl-set 64" >> /etc/init.d/ttl.sh; chmod 755 /etc/init.d/ttl.sh; ln -s /etc/init.d/ttl.sh /etc/rc5.d/S98ttl')
     conn.read_very_eager()
     print('Added TTL rules to mask hotspot data as normal "on-device" data. Will take effect on reboot.')
+
 
 def moodLighting(conn):
     conn.resetIfDead()
     # favorite part of this whole project tbh
-    conn.send('/usr/bin/led.sh; sleep 4; echo 1 > /sys/class/leds/led\:bat_blue/blink; echo 1 > /sys/class/leds/led\:signal_green/blink')
-    conn.read_very_eager() # clear the read queue so it doesn't clutter up any future shell sessions
+    conn.send(
+        '/usr/bin/led.sh; sleep 4; echo 1 > /sys/class/leds/led\:bat_blue/blink; echo 1 > /sys/class/leds/led\:signal_green/blink')
+    conn.read_very_eager()  # clear the read queue so it doesn't clutter up any future shell sessions
 
 
 def disableOmadm(conn):
@@ -208,7 +209,7 @@ def disableOmadm(conn):
     conn.send(cmd)
     if args.verbose:
         print(f'Received: {conn.read_very_eager().decode()}')
-    conn.read_very_eager() # clear the read queue either way
+    conn.read_very_eager()  # clear the read queue either way
     print('Succesfully removed OMA-DM bootstrap, if one was present.')
 
 
@@ -230,7 +231,7 @@ Would you like to set a custom root password? (Y/n):
             chooseAction(conn)
     else:
         choice = input(
-        '''### Options ###
+            '''### Options ###
         1) Change root password
         2) Enough with this script BS, give me a shell!
         3) Enable ADB
@@ -243,9 +244,9 @@ Would you like to set a custom root password? (Y/n):
         10) Quit\n
         Enter option: '''
         )
-        while int(choice) not in range(1,11):
+        while int(choice) not in range(1, 11):
             choice = input('Please select a valid choice 1-10: ')
-        options= {
+        options = {
             '1': changeRootPwd,
             '2': usrShell,
             '3': adbTemp,
