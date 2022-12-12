@@ -45,7 +45,7 @@ python ./rootScript.py -v
 
 ### **Notes**
 
-- The script has been tested to work on Windows 11, EndeavorOS Linux, and MacOS 13 Ventura
+- The script has been tested to work on Windows 11 & 10, EndeavorOS Linux, and MacOS 13 Ventura
 - Script assumes your hotspot's IP is 192.168.0.1
 - Script assumes you have set a **custom** weblogin password, i.e. you have changed it from the default AdminXXXX
 - For the sake of your own experimentation, the script leaves an unauthenticated root FTP server running on the device *but only once you enable it*. When you are done browsing the filesystem, be sure to manually close it by running `killall tcpsvd` on the TMOHS1 as root, or simply reboot the device.
