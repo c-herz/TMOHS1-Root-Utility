@@ -49,3 +49,4 @@ python ./rootScript.py -v
 - Script assumes your hotspot's IP is 192.168.0.1
 - Script assumes you have set a **custom** weblogin password, i.e. you have changed it from the default AdminXXXX
 - For the sake of your own experimentation, the script leaves an unauthenticated root FTP server running on the device *but only once you enable it*. When you are done browsing the filesystem, be sure to manually close it by running `killall tcpsvd` on the TMOHS1 as root, or simply reboot the device.
+- You can build custom binaries to run on the rooted device as well as a portable cross-SDK with [this custom Buildroot fork](https://github.com/c-herz/tmohs-buildroot). Note that this is very experimental, and I cannot guarantee it will build/run properly, however.
