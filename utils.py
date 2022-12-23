@@ -234,10 +234,10 @@ Would you like to set a custom root password? (Y/n):
             '''### Options ###
         1) Change root password
         2) Enough with this script BS, give me a shell!
-        3) Enable ADB
-        4) Enable ADB - Persistent through reboot (somewhat experimental)
+        3) Enable ADB - Temporary, resets at reboot
+        4) Enable ADB - Persistent through reboot
         5) Enable FTP server for / on port 21 - DO NOT LEAVE OPEN
-        6) Remove OMA-DM bootstrap (essentially disables firmware updates, recommended)
+        6) Remove OMA-DM bootstrap (disables firmware updates, recommended)
         7) Enable mood lighting (look at the battery LED)
         8) Mask hotspot data as "on-client-device" data
         9) Reboot
